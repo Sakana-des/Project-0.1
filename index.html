@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZEA Remote Control</title>
+    <style>
+        :root {
+            --primary: #8a2be2;
+            --secondary: #00d2ff;
+            --bg-color: #0f0c29;
+            --surface: rgba(255, 255, 255, 0.05);
+            --text: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-color), #302b63, #24243e);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background: rgba(20, 20, 40, 0.6);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            text-align: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .avatar-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            padding: 5px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 25px rgba(138, 43, 226, 0.6);
+            animation: pulse 3s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 15px rgba(138, 43, 226, 0.4); }
+            100% { box-shadow: 0 0 35px rgba(0, 210, 255, 0.8); }
+        }
+
+        .avatar {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid #1a1a2e;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 0 0 5px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        p.subtitle {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 25px;
+        }
+
+        .config-box {
+            background: var(--surface);
+            padding: 15px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+        }
+
+        .config-box label {
+            font-size: 12px;
+            color: #ccc;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .config-box input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 14px;
+            text-align: center;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        .config-box input:focus {
+            border-color: var(--secondary);
+        }
+
+        .record-btn {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+            border: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(255, 65, 108, 0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .record-btn:active {
+            transform: scale(0.9);
+        }
+
+        .record-btn.listening {
+            animation: recordingPulse 1s infinite;
+            background: linear-gradient(45deg, #11998e, #38ef7d);
+            box-shadow: 0 8px 20px rgba(56, 239, 125, 0.5);
+        }
+
+        @keyframes recordingPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(56, 239, 125, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 239, 125, 0); }
+        }
+
+        .status {
+            font-size: 16px;
+            margin-bottom: 25px;
+            font-weight: 500;
+            min-height: 24px;
+        }
+
+        .manual-commands {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .cmd-btn {
+            background: var(--surface);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 12px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .cmd-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .cmd-btn:active {
+            transform: translateY(0);
+        }
+
+        .cmd-btn.full-width {
+            grid-column: span 2;
+        }
+
+        .cmd-btn.danger {
+            border-color: rgba(255, 75, 43, 0.5);
+            color: #ffb3b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="avatar-container">
+            <img src="there.webp" alt="Zea Avatar" class="avatar">
+        </div>
+        
+        <h1>ZEA</h1>
+        <p class="subtitle">Advanced Voice Assistant</p>
+
+        <div class="config-box">
+            <label for="ipInput">IP PC (Kosongkan jika akses langsung dari PC)</label>
+            <input type="text" id="ipInput" placeholder="Cth: 192.168.1.5">
+        </div>
+
+        <button class="record-btn" id="micBtn">🎤</button>
+        <div class="status" id="status">Status: Standby</div>
+
+        <div class="manual-commands">
+            <button class="cmd-btn full-width" onclick="sendCommand('zea!')">👋 Panggil Zea!</button>
+            <button class="cmd-btn" onclick="sendCommand('zea lock the pc')">🔒 Lock PC</button>
+            <button class="cmd-btn danger" onclick="sendCommand('zea stop')">🛑 Stop App</button>
+            <button class="cmd-btn full-width danger" onclick="sendCommand('zea shutdown the pc')">🔥 Shutdown PC</button>
+            <button class="cmd-btn full-width danger" onclick="sendCommand('zea shutdown')">⚠️ Shutdown PC (Alt)</button>
+        </div>
+    </div>
+
+    <script>
+        const ipInput = document.getElementById('ipInput');
+        const savedIp = localStorage.getItem('zea_ip');
+        if (savedIp) {
+            ipInput.value = savedIp;
+        }
+
+        ipInput.addEventListener('change', () => {
+            localStorage.setItem('zea_ip', ipInput.value.trim());
+        });
+
+        function getApiUrl() {
+            let ip = ipInput.value.trim();
+            if (!ip) {
+                // Gunakan origin jika tidak diset
+                return '/api/command';
+            }
+            return `https://${ip}:5000/api/command`;
+        }
+
+        function sendCommand(cmd) {
+            const status = document.getElementById('status');
+            status.innerText = "Mengirim: " + cmd + "...";
+            status.style.color = "#00d2ff";
+
+            fetch(getApiUrl(), {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({command: cmd})
+            }).then(res => {
+                if(res.ok) {
+                    status.innerText = "Terkirim: " + cmd;
+                    status.style.color = "#38ef7d";
+                } else {
+                    throw new Error("Server error");
+                }
+            }).catch(e => {
+                status.innerText = "Gagal: " + e.message;
+                status.style.color = "#ff416c";
+                console.error(e);
+            });
+            
+            setTimeout(() => {
+                if(status.innerText.startsWith("Terkirim")) {
+                    status.innerText = "Status: Standby";
+                    status.style.color = "#fff";
+                }
+            }, 3000);
+        }
+
+        const micBtn = document.getElementById('micBtn');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            document.getElementById('status').innerText = "Browser tidak mendukung Voice Recognition.";
+            micBtn.style.opacity = "0.5";
+            micBtn.style.cursor = "not-allowed";
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'id-ID';
+            recognition.interimResults = false;
+            
+            micBtn.addEventListener('click', () => {
+                try {
+                    recognition.start();
+                    document.getElementById('status').innerText = "Mendengarkan...";
+                    document.getElementById('status').style.color = "#00d2ff";
+                    micBtn.classList.add('listening');
+                } catch(e) {
+                    document.getElementById('status').innerText = "Mic Error: " + e.message;
+                }
+            });
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                micBtn.classList.remove('listening');
+                sendCommand(transcript);
+            };
+            
+            recognition.onerror = (e) => {
+                document.getElementById('status').innerText = "Error: " + e.error;
+                document.getElementById('status').style.color = "#ff416c";
+                micBtn.classList.remove('listening');
+                
+                setTimeout(() => {
+                    document.getElementById('status').innerText = "Status: Standby";
+                    document.getElementById('status').style.color = "#fff";
+                }, 3000);
+            };
+            
+            recognition.onend = () => {
+                micBtn.classList.remove('listening');
+            };
+        }
+    </script>
+</body>
+</html>

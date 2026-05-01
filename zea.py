@@ -7,7 +7,8 @@ import scipy.io.wavfile as wav
 import threading
 import queue
 import tkinter as tk
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import logging
 import socket
 
@@ -15,7 +16,8 @@ import socket
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
+CORS(app)
 cmd_queue = queue.Queue()
 tts_queue = queue.Queue()
 
@@ -43,80 +45,9 @@ def tts_worker():
         engine.say(text)
         engine.runAndWait()
 
-# Template HTML untuk Web Remote via HP
-WEB_HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ZEA Remote</title>
-    <style>
-        body { background-color: #121212; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding-top: 50px; }
-        button { background-color: #bb86fc; color: #000; border: none; padding: 25px 50px; font-size: 24px; border-radius: 50px; margin-top: 50px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(187, 134, 252, 0.4); transition: 0.3s; }
-        button:active { transform: scale(0.95); }
-        #status { margin-top: 40px; font-size: 20px; color: #aaa; }
-        .header { font-size: 28px; font-weight: bold; margin-bottom: 10px; color: #bb86fc; }
-        .warning { font-size: 14px; color: #ff5252; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <div class="header">ZEA Remote Control</div>
-    <p>Gunakan HP Anda sebagai Mikrofon</p>
-    <button id="micBtn">TAP TO SPEAK</button>
-    <div id="status">Status: Standby</div>
-    <div class="warning">Catatan: Jika tombol tidak merespon, pastikan Anda menggunakan HTTPS dan telah mengizinkan akses mikrofon di browser.</div>
-    <script>
-        const btn = document.getElementById('micBtn');
-        const status = document.getElementById('status');
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        
-        if (!SpeechRecognition) {
-            status.innerText = "Browser tidak mendukung Speech Recognition.";
-        } else {
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'id-ID'; // Menggunakan basis bahasa indonesia
-            recognition.interimResults = false;
-            
-            btn.addEventListener('click', () => {
-                try {
-                    recognition.start();
-                    status.innerText = "Mendengarkan...";
-                    btn.style.backgroundColor = "#ff5252";
-                    btn.innerText = "LISTENING...";
-                } catch(e) {
-                    status.innerText = "Error: " + e.message;
-                }
-            });
-            
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                status.innerText = "Anda berkata: " + transcript;
-                btn.style.backgroundColor = "#bb86fc";
-                btn.innerText = "TAP TO SPEAK";
-                
-                fetch('/api/command', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({command: transcript})
-                }).catch(e => {
-                    status.innerText = "Gagal mengirim: " + e.message;
-                });
-            };
-            
-            recognition.onerror = (e) => {
-                status.innerText = "Error: " + e.error;
-                btn.style.backgroundColor = "#bb86fc";
-                btn.innerText = "TAP TO SPEAK";
-            };
-        }
-    </script>
-</body>
-</html>
-"""
-
 @app.route('/')
 def index():
-    return render_template_string(WEB_HTML)
+    return send_from_directory('.', 'index.html')
 
 @app.route('/api/command', methods=['POST'])
 def receive_command():
@@ -193,11 +124,15 @@ class ZeaAssistant:
         os._exit(0)
 
     def execute_command(self, cmd):
-        if "lock" in cmd or "look" in cmd or "log" in cmd or "blok" in cmd:
-            if "pc" in cmd or "visi" in cmd or "this" in cmd or "the pc" in cmd or "dpc" in cmd:
-                self.speak("As your command sir")
-                # shutdown /s (mati total), /t 3 (dalam 3 detik)
+        if "shutdown" in cmd:
+            if "pc" in cmd or "visi" in cmd or "this" in cmd or "the pc" in cmd or "dpc" in cmd or cmd.strip() == "shutdown":
+                self.speak("As your command sir, shutting down.")
                 os.system("shutdown /s /t 3")
+                
+        elif "lock" in cmd or "look" in cmd or "log" in cmd or "blok" in cmd:
+            if "pc" in cmd or "visi" in cmd or "this" in cmd or "the pc" in cmd or "dpc" in cmd or cmd.strip() in ["lock", "look", "log", "blok"]:
+                self.speak("As your command sir, locking the pc.")
+                os.system("rundll32.exe user32.dll,LockWorkStation")
                 
         elif "keluar" in cmd or "exit" in cmd or "stop" in cmd:
             self.emergency_stop()

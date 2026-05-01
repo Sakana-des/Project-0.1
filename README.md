@@ -15,7 +15,7 @@ ZEA adalah asisten virtual berbasis suara (Voice Assistant) yang dikontrol mengg
 Pastikan Python sudah terinstal di komputer/laptop Anda. Sebelum menjalankan program, Anda perlu menginstal *library* yang dibutuhkan dengan cara membuka Terminal/Command Prompt dan menjalankan perintah berikut:
 
 ```bash
-pip install SpeechRecognition pyttsx3 sounddevice numpy scipy Flask pywin32
+pip install SpeechRecognition pyttsx3 sounddevice numpy scipy Flask pywin32 flask-cors cryptography
 ```
 
 ## Cara Menjalankan
@@ -33,16 +33,19 @@ pip install SpeechRecognition pyttsx3 sounddevice numpy scipy Flask pywin32
 - Anda bisa memanggil "Zea" terlebih dahulu, lalu tunggu ZEA membalas *"What's your command sir?"*, kemudian ucapkan perintahnya.
 - Atau Anda bisa langsung menggabungkan panggilan dan perintah (contoh: "Zea lock pc").
 
-### Penggunaan Menggunakan Remote HP
-Fitur ini sangat berguna jika Anda sedang jauh dari jangkauan mikrofon laptop.
+### Penggunaan Menggunakan Remote HP (Web/Github.io)
+Sekarang ZEA memiliki tampilan antarmuka web modern yang canggih (dilengkapi Avatar 3D dan UI futuristik).
+Anda dapat langsung membukanya di browser HP (akses via IP Lokal) atau menghosting `index.html` beserta `there.webp` ke **GitHub Pages**.
 
-1. Pastikan HP dan PC Anda terhubung ke jaringan WiFi/Internet yang sama.
-2. Buka browser di HP (disarankan Chrome atau Safari).
-3. Masukkan alamat IP beserta port yang tertera di aplikasi ZEA (contoh: `https://192.168.1.5:5000`).
-4. **Penting:** Karena aplikasi ini menggunakan sertifikat SSL *adhoc* buatan sendiri agar izin mikrofon di browser HP terbuka, browser akan memberi peringatan **"Connection is not private"** atau **"Koneksi Tidak Aman"**. 
-   - Anda cukup klik tombol **Advanced (Lanjutan)**, lalu klik tulisan **Proceed / Lanjutkan** ke alamat tersebut.
-5. Pada halaman web yang terbuka, klik tombol **TAP TO SPEAK** dan izinkan akses mikrofon jika muncul *pop-up* permintaan dari browser.
-6. Ucapkan perintah Anda.
+**Jika menggunakan IP Lokal:**
+1. Buka browser HP dan ketik IP dari ZEA (contoh: `https://192.168.1.5:5000`).
+2. Izinkan sertifikat SSL (klik Advanced -> Proceed).
+
+**Jika menggunakan GitHub Pages:**
+1. Hosting file `index.html` dan `there.webp` ke repositori GitHub Anda dan aktifkan GitHub Pages.
+2. Buka link web GitHub Pages Anda di HP.
+3. Masukkan IP Address PC Anda pada kolom "IP PC" (contoh: `192.168.1.5`).
+4. Klik tombol mikrofon (🎤) untuk memberikan perintah suara atau gunakan tombol-tombol command manual yang tersedia. *(Catatan: IP PC harus diset agar perintah dapat diteruskan ke aplikasi lokal Anda)*.
 
 ## Daftar Perintah (Commands)
 
@@ -51,18 +54,22 @@ Berikut adalah daftar perintah suara yang saat ini dikenali oleh ZEA. Program me
 ### 1. Memanggil ZEA (Wake Words)
 Anda bisa memanggil ZEA menggunakan beberapa variasi lafal berikut untuk mengaktifkan mode siaga.
 - **Kata kunci yang dikenali:** `"zea"`, `"sea"`, `"zia"`, `"dea"`, `"dia"`, `"jea"`, `"z"`
-- **Contoh pengucapan:** `"Zea"`
+- **Contoh pengucapan:** `"Zea!"`
 - **Respon Sistem:** ZEA akan membalas *"What's your command sir?"*
 
-### 2. Mematikan Komputer (Shutdown / Lock PC)
-Memerintahkan ZEA untuk mematikan PC dalam waktu 3 detik.
+### 2. Mengunci Komputer (Lock PC)
+Memerintahkan ZEA untuk mengunci perangkat Windows Anda (Sama seperti menekan Windows + L).
 - **Syarat:** Sistem mendeteksi gabungan dari kata kerja dan kata bendanya.
   - Kata kerja: `"lock"`, `"look"`, `"log"`, `"blok"`
   - Kata benda: `"pc"`, `"visi"` (menyerupai *pc*/*this pc*), `"this"`, `"the pc"`, `"dpc"`
-- **Contoh Perintah:** `"Zea lock pc"` atau `"Zea lock the pc"`
-- **Respon Sistem:** *"As your command sir"* lalu PC akan **shutdown** (mati total).
+- **Contoh Perintah:** `"Zea lock the pc"`
+- **Respon Sistem:** *"As your command sir, locking the pc."* lalu layar Windows akan terkunci.
 
-*(Catatan: Saat ini sistem diatur untuk mematikan perangkat `shutdown /s`, bukan sekadar lock screen)*
+### 3. Mematikan Komputer (Shutdown PC)
+Memerintahkan ZEA untuk mematikan perangkat Anda secara total.
+- **Syarat:** Mengandung kata `"shutdown"`.
+- **Contoh Perintah:** `"Zea shutdown"` atau `"Zea shutdown the pc"`
+- **Respon Sistem:** *"As your command sir, shutting down."* lalu komputer akan dimatikan (mati total dalam 3 detik).
 
 ### 3. Menghentikan Aplikasi ZEA (Exit/Stop)
 Memerintahkan aplikasi ZEA untuk menutup diri dan berhenti berjalan.
