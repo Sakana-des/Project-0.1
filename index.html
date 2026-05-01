@@ -212,7 +212,7 @@
         <div class="status" id="status">Status: Standby</div>
 
         <div class="manual-commands">
-            <button class="cmd-btn full-width" onclick="sendCommand('zea!')">👋 Panggil Zea!</button>
+            <button class="cmd-btn full-width" onclick="sendCommand('zea')">👋 Panggil Zea!</button>
             <button class="cmd-btn" onclick="sendCommand('zea lock the pc')">🔒 Lock PC</button>
             <button class="cmd-btn danger" onclick="sendCommand('zea stop')">🛑 Stop App</button>
             <button class="cmd-btn full-width danger" onclick="sendCommand('zea shutdown the pc')">🔥 Shutdown PC</button>
@@ -242,6 +242,15 @@
 
         function sendCommand(cmd) {
             const status = document.getElementById('status');
+            
+            let ip = ipInput.value.trim();
+            if (!ip && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" && !window.location.hostname.startsWith("192.168.")) {
+                status.innerText = "Gagal: Anda belum mengisi IP PC!";
+                status.style.color = "#ff416c";
+                alert("Harap isi alamat IP PC Anda terlebih dahulu jika Anda mengakses web ini dari luar jaringan lokal (seperti GitHub Pages).\nContoh: 192.168.1.5");
+                return;
+            }
+
             status.innerText = "Mengirim: " + cmd + "...";
             status.style.color = "#00d2ff";
 

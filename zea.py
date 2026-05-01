@@ -1,6 +1,5 @@
 import speech_recognition as sr
 import os
-import pyttsx3
 import sounddevice as sd
 import numpy as np
 import scipy.io.wavfile as wav
@@ -11,39 +10,43 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import logging
 import socket
+from playsound import playsound
 
 # Matikan log Flask agar terminal lebih bersih
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
+# Mendapatkan path absolut dari folder script ini
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 cmd_queue = queue.Queue()
-tts_queue = queue.Queue()
+audio_queue = queue.Queue()
 
-# Thread khusus untuk Text-to-Speech agar tidak bikin GUI ngelag/freeze
-def tts_worker():
-    # CoInitialize diperlukan di Windows saat menggunakan pyttsx3 di thread terpisah
-    try:
-        import pythoncom
-        pythoncom.CoInitialize()
-    except ImportError:
-        pass
-        
-    engine = pyttsx3.init()
-    voices = engine.getProperty('voices')
-    for voice in voices:
-        if "Zira" in voice.name or "female" in voice.name.lower():
-            engine.setProperty('voice', voice.id)
-            break
-            
+# Mapping file suara MP3
+SOUND_FILES = {
+    "wake":     os.path.join(SCRIPT_DIR, "whatsYourCommandsSir.mp3"),
+    "lock":     os.path.join(SCRIPT_DIR, "AsYourCommandSir,LockingThePc.mp3"),
+    "shutdown": os.path.join(SCRIPT_DIR, "shutdown.mp3"),
+    "exit":     os.path.join(SCRIPT_DIR, "ZeaExit.mp3"),
+}
+
+# Thread khusus untuk memutar suara MP3 agar tidak bikin GUI ngelag/freeze
+def audio_worker():
     while True:
-        text = tts_queue.get()
-        if text is None:
+        sound_key = audio_queue.get()
+        if sound_key is None:
             break
-        print(f"ZEA: {text}")
-        engine.say(text)
-        engine.runAndWait()
+        filepath = SOUND_FILES.get(sound_key)
+        if filepath and os.path.exists(filepath):
+            print(f"ZEA: [Memutar {os.path.basename(filepath)}]")
+            try:
+                playsound(filepath)
+            except Exception as e:
+                print(f"[Audio Error] {e}")
+        else:
+            print(f"ZEA: [File suara '{sound_key}' tidak ditemukan: {filepath}]")
 
 @app.route('/')
 def index():
@@ -53,6 +56,8 @@ def index():
 def receive_command():
     data = request.json
     command = data.get("command", "").lower()
+    for p in "!?,.":
+        command = command.replace(p, "")
     print(f"\n[Remote HP] Anda berkata: {command}")
     cmd_queue.put(command)
     return jsonify({"status": "success"})
@@ -93,8 +98,8 @@ class ZeaAssistant:
         self.waiting_for_command = False
         self.is_running = True
         
-        # Mulai worker TTS di background
-        threading.Thread(target=tts_worker, daemon=True).start()
+        # Mulai worker Audio di background
+        threading.Thread(target=audio_worker, daemon=True).start()
         
         # Thread Flask untuk Remote HP
         threading.Thread(target=run_flask, daemon=True).start()
@@ -110,35 +115,70 @@ class ZeaAssistant:
         print(f"Akses Remote HP: https://{ip_address}:5000")
         print("CATATAN: Pastikan menggunakan HTTPS. Jika browser HP memberi")
         print("peringatan 'Not Secure/Tidak Aman', klik 'Advanced/Lanjutkan' saja.")
+        print("Jika HP tidak bisa konek, jalankan 'open_firewall.bat' sebagai Admin.")
         print("===========================================\n")
-        self.speak("Sistem ZEA sudah aktif. Siap menerima perintah.")
+        self.play_sound("wake")
 
-    def speak(self, text):
-        # Memasukkan teks ke antrean TTS agar tidak mem-freeze GUI
-        tts_queue.put(text)
+    def play_sound(self, sound_key):
+        # Memasukkan kunci suara ke antrean Audio agar tidak mem-freeze GUI
+        audio_queue.put(sound_key)
 
     def emergency_stop(self):
-        self.speak("Emergency stop diaktifkan. Mematikan sistem ZEA.")
+        self.play_sound("exit")
+        import time
+        time.sleep(2)
         self.is_running = False
         self.root.destroy()
         os._exit(0)
 
     def execute_command(self, cmd):
-        if "shutdown" in cmd:
-            if "pc" in cmd or "visi" in cmd or "this" in cmd or "the pc" in cmd or "dpc" in cmd or cmd.strip() == "shutdown":
-                self.speak("As your command sir, shutting down.")
-                os.system("shutdown /s /t 3")
+        # --- Kata kunci SHUTDOWN (mati total) ---
+        shutdown_verbs = ["shutdown", "shut down", "matikan", "mati", "turn off",
+                          "power off", "shut", "shat down", "setdown", "shatdown",
+                          "saddown", "sutdown", "shutdaun", "setdaun"]
+        
+        # --- Kata kunci LOCK (kunci layar) ---
+        lock_verbs = ["lock", "look", "log", "blok", "kunci", "lok",
+                      "luk", "loc", "locked", "block", "blokkir",
+                      "blokir", "gembok", "tutup", "close"]
+        
+        # --- Kata kunci target PC ---
+        pc_targets = ["pc", "computer", "komputer", "laptop", "leptop",
+                      "visi", "this", "the pc", "dpc", "pisi", "pci",
+                      "screen", "layar", "monitor"]
+        
+        # Cek apakah ada kata shutdown di command
+        has_shutdown = any(verb in cmd for verb in shutdown_verbs)
+        # Cek apakah ada kata lock di command
+        has_lock = any(verb in cmd for verb in lock_verbs)
+        # Cek apakah ada kata target PC di command
+        has_target = any(target in cmd for target in pc_targets)
+        # Cek apakah command hanya berisi kata kerja saja (tanpa target)
+        is_bare_shutdown = cmd.strip() in shutdown_verbs
+        is_bare_lock = cmd.strip() in lock_verbs
+        
+        # --- Kata kunci STOP/EXIT ---
+        stop_words = ["keluar", "exit", "stop", "quit", "berhenti", 
+                      "close zea", "tutup zea", "matikan zea"]
+        has_stop = any(word in cmd for word in stop_words)
+        
+        if has_shutdown and (has_target or is_bare_shutdown):
+            self.play_sound("shutdown")
+            import time
+            time.sleep(2)
+            os.system("shutdown /s /t 3")
                 
-        elif "lock" in cmd or "look" in cmd or "log" in cmd or "blok" in cmd:
-            if "pc" in cmd or "visi" in cmd or "this" in cmd or "the pc" in cmd or "dpc" in cmd or cmd.strip() in ["lock", "look", "log", "blok"]:
-                self.speak("As your command sir, locking the pc.")
-                os.system("rundll32.exe user32.dll,LockWorkStation")
+        elif has_lock and (has_target or is_bare_lock):
+            self.play_sound("lock")
+            import time
+            time.sleep(2)
+            os.system("rundll32.exe user32.dll,LockWorkStation")
                 
-        elif "keluar" in cmd or "exit" in cmd or "stop" in cmd:
+        elif has_stop:
             self.emergency_stop()
             
         else:
-            self.speak("ZEA tidak mengenali perintah tersebut sir.")
+            print(f"ZEA: Perintah tidak dikenali -> '{cmd}'")
 
     def process_queue(self):
         try:
@@ -163,7 +203,7 @@ class ZeaAssistant:
                             
                     if is_called:
                         if cmd == "":
-                            self.speak("What's your command sir?")
+                            self.play_sound("wake")
                             self.waiting_for_command = True
                             self.lbl_title.config(text="ZEA is Listening...", fg="#ffcc00")
                         else:
