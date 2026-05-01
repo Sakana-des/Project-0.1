@@ -6,17 +6,26 @@ ZEA adalah asisten virtual berbasis suara (Voice Assistant) yang dikontrol mengg
 
 - **Panggilan Pintar (Wake Word):** ZEA akan merespon jika Anda memanggil namanya ("Zea").
 - **Voice Remote via HP:** ZEA menyediakan web server lokal yang bisa diakses dari browser HP untuk menggunakan HP sebagai mikrofon jarak jauh.
+- **Web UI Modern:** Tampilan web futuristik dengan avatar 3D, tombol voice recording, dan tombol manual command.
+- **Custom Audio Response:** ZEA membalas perintah dengan file suara MP3 custom (bukan TTS robot).
 - **Perintah Suara (Speech-to-Text):** Menggunakan Google Speech Recognition (mengutamakan pengenalan Bahasa Indonesia, dengan adaptasi lafal bahasa inggris).
-- **Text-to-Speech:** ZEA akan merespon atau membalas secara interaktif dengan suara.
 - **Background Listening:** Mendengarkan perintah secara terus-menerus di latar belakang tanpa membuat antarmuka aplikasi menjadi lambat (freeze).
 
 ## Prasyarat (Requirements)
 
-Pastikan Python sudah terinstal di komputer/laptop Anda. Sebelum menjalankan program, Anda perlu menginstal *library* yang dibutuhkan dengan cara membuka Terminal/Command Prompt dan menjalankan perintah berikut:
+Pastikan Python sudah terinstal di komputer/laptop Anda. Sebelum menjalankan program, Anda perlu menginstal *library* yang dibutuhkan:
 
 ```bash
-pip install SpeechRecognition pyttsx3 sounddevice numpy scipy Flask pywin32 flask-cors cryptography
+pip install SpeechRecognition sounddevice numpy scipy Flask flask-cors cryptography playsound==1.2.2
 ```
+
+## File Suara (Wajib Ada di Folder Project)
+
+Pastikan file-file MP3 berikut ada di folder yang sama dengan `zea.py`:
+- `whatsYourCommandsSir.mp3` → Diputar saat ZEA dipanggil / startup.
+- `AsYourCommandSir,LockingThePc.mp3` → Diputar saat perintah **Lock PC**.
+- `shutdown.mp3` → Diputar saat perintah **Shutdown PC**.
+- `ZeaExit.mp3` → Diputar saat perintah **Stop/Exit** (mematikan aplikasi ZEA).
 
 ## Cara Menjalankan
 
@@ -30,7 +39,7 @@ pip install SpeechRecognition pyttsx3 sounddevice numpy scipy Flask pywin32 flas
 
 ### Penggunaan Melalui Mikrofon Lokal (Laptop/PC)
 - Secara default, aplikasi sudah terus mendengarkan melalui mikrofon PC Anda.
-- Anda bisa memanggil "Zea" terlebih dahulu, lalu tunggu ZEA membalas *"What's your command sir?"*, kemudian ucapkan perintahnya.
+- Anda bisa memanggil "Zea" terlebih dahulu, lalu tunggu ZEA membalas, kemudian ucapkan perintahnya.
 - Atau Anda bisa langsung menggabungkan panggilan dan perintah (contoh: "Zea lock pc").
 
 ### Penggunaan Menggunakan Remote HP (Web/Github.io)
@@ -45,39 +54,47 @@ Anda dapat langsung membukanya di browser HP (akses via IP Lokal) atau menghosti
 1. Hosting file `index.html` dan `there.webp` ke repositori GitHub Anda dan aktifkan GitHub Pages.
 2. Buka link web GitHub Pages Anda di HP.
 3. Masukkan IP Address PC Anda pada kolom "IP PC" (contoh: `192.168.1.5`).
-4. Klik tombol mikrofon (🎤) untuk memberikan perintah suara atau gunakan tombol-tombol command manual yang tersedia. *(Catatan: IP PC harus diset agar perintah dapat diteruskan ke aplikasi lokal Anda)*.
+4. Klik tombol mikrofon (🎤) untuk memberikan perintah suara atau gunakan tombol-tombol command manual yang tersedia.
+
+### Membuka Firewall (Jika HP Tidak Bisa Konek)
+Jika HP Anda tidak bisa mengakses ZEA (error `ERR_CONNECTION_TIMED_OUT`), itu karena **Windows Firewall memblokir port 5000**.
+**Tanpa perlu mematikan seluruh Firewall**, cukup jalankan file `open_firewall.bat` yang sudah disediakan:
+1. Klik kanan file `open_firewall.bat`.
+2. Pilih **"Run as administrator"**.
+3. Selesai! Port 5000 akan terbuka dan HP bisa mengakses ZEA.
 
 ## Daftar Perintah (Commands)
 
-Berikut adalah daftar perintah suara yang saat ini dikenali oleh ZEA. Program mendeteksi kata kunci dari kalimat yang Anda ucapkan.
+Berikut adalah daftar perintah suara yang saat ini dikenali oleh ZEA. ZEA mengenali banyak variasi pengucapan/grammar.
 
 ### 1. Memanggil ZEA (Wake Words)
 Anda bisa memanggil ZEA menggunakan beberapa variasi lafal berikut untuk mengaktifkan mode siaga.
 - **Kata kunci yang dikenali:** `"zea"`, `"sea"`, `"zia"`, `"dea"`, `"dia"`, `"jea"`, `"z"`
-- **Contoh pengucapan:** `"Zea!"`
-- **Respon Sistem:** ZEA akan membalas *"What's your command sir?"*
+- **Contoh pengucapan:** `"Zea"`
+- **Respon Sistem:** Memutar suara `whatsYourCommandsSir.mp3`
 
 ### 2. Mengunci Komputer (Lock PC)
-Memerintahkan ZEA untuk mengunci perangkat Windows Anda (Sama seperti menekan Windows + L).
-- **Syarat:** Sistem mendeteksi gabungan dari kata kerja dan kata bendanya.
-  - Kata kerja: `"lock"`, `"look"`, `"log"`, `"blok"`
-  - Kata benda: `"pc"`, `"visi"` (menyerupai *pc*/*this pc*), `"this"`, `"the pc"`, `"dpc"`
-- **Contoh Perintah:** `"Zea lock the pc"`
-- **Respon Sistem:** *"As your command sir, locking the pc."* lalu layar Windows akan terkunci.
+Memerintahkan ZEA untuk mengunci layar Windows (Windows + L).
+- **Kata kerja yang dikenali:** `"lock"`, `"look"`, `"log"`, `"blok"`, `"kunci"`, `"lok"`, `"luk"`, `"loc"`, `"locked"`, `"block"`, `"blokkir"`, `"blokir"`, `"gembok"`, `"tutup"`, `"close"`
+- **Kata target yang dikenali:** `"pc"`, `"computer"`, `"komputer"`, `"laptop"`, `"leptop"`, `"this"`, `"the pc"`, `"screen"`, `"layar"`, `"monitor"`
+- **Contoh Perintah:** `"Zea lock the pc"`, `"Zea kunci laptop"`, `"Zea gembok layar"`
+- **Respon Sistem:** Memutar suara `AsYourCommandSir,LockingThePc.mp3` lalu layar Windows terkunci.
 
 ### 3. Mematikan Komputer (Shutdown PC)
 Memerintahkan ZEA untuk mematikan perangkat Anda secara total.
-- **Syarat:** Mengandung kata `"shutdown"`.
-- **Contoh Perintah:** `"Zea shutdown"` atau `"Zea shutdown the pc"`
-- **Respon Sistem:** *"As your command sir, shutting down."* lalu komputer akan dimatikan (mati total dalam 3 detik).
+- **Kata kerja yang dikenali:** `"shutdown"`, `"shut down"`, `"matikan"`, `"mati"`, `"turn off"`, `"power off"`, `"shut"`, `"shat down"`, `"setdown"`, `"shatdown"`, `"saddown"`, `"sutdown"`, `"shutdaun"`, `"setdaun"`
+- **Kata target yang dikenali:** (sama dengan Lock PC di atas)
+- **Contoh Perintah:** `"Zea shutdown the pc"`, `"Zea matikan komputer"`, `"Zea shutdown"`
+- **Respon Sistem:** Memutar suara `shutdown.mp3` lalu komputer dimatikan (mati total dalam 3 detik).
 
-### 3. Menghentikan Aplikasi ZEA (Exit/Stop)
+### 4. Menghentikan Aplikasi ZEA (Exit/Stop)
 Memerintahkan aplikasi ZEA untuk menutup diri dan berhenti berjalan.
-- **Kata kunci yang dikenali:** `"keluar"`, `"exit"`, `"stop"`
-- **Contoh Perintah:** `"Zea stop"` atau `"Zea keluar"`
-- **Respon Sistem:** *"Emergency stop diaktifkan. Mematikan sistem ZEA."* lalu aplikasi akan tertutup.
+- **Kata kunci yang dikenali:** `"keluar"`, `"exit"`, `"stop"`, `"quit"`, `"berhenti"`, `"close zea"`, `"tutup zea"`, `"matikan zea"`
+- **Contoh Perintah:** `"Zea stop"`, `"Zea keluar"`, `"Zea quit"`
+- **Respon Sistem:** Memutar suara `ZeaExit.mp3` lalu aplikasi akan tertutup.
 
 ---
 
 **Tips Tambahan:**
 - Terdapat juga tombol **EMERGENCY STOP** berwarna merah di tampilan aplikasi di PC. Anda dapat mengkliknya secara manual kapan saja jika ingin menghentikan aplikasi dengan cepat.
+- Di halaman web terdapat tombol-tombol manual (Lock PC, Stop, Shutdown) sebagai alternatif jika perintah suara tidak terdeteksi.
